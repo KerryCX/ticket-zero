@@ -38,7 +38,7 @@ jobs:
           if-no-files-found: ignore
 
   client:
-    name: Client (lint, build)
+    name: Client (lint, test, build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -52,4 +52,5 @@ jobs:
           cache-dependency-path: client/package-lock.json
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build

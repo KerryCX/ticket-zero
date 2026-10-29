@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -13,5 +13,12 @@ export default defineConfig({
       "/tickets": "http://localhost:3000",
       "/health": "http://localhost:3000",
     },
+  },
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    // Resets mock call history between tests so one test's calls never leak
+    // into the next.
+    clearMocks: true,
   },
 });
