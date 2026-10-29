@@ -31,11 +31,14 @@ export const TicketList = ({
   onDeleted,
 }: TicketListProps): React.JSX.Element => {
   const filterId = useId();
+  const headingId = useId();
 
   return (
-    <section>
+    <section aria-labelledby={headingId}>
       <div className={styles.toolbar}>
-        <h2 className={styles.heading}>Tickets</h2>
+        <h2 id={headingId} className={styles.heading}>
+          Tickets
+        </h2>
         <div className={styles.filterField}>
           <label htmlFor={filterId}>Status</label>
           <select
