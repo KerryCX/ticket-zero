@@ -51,6 +51,10 @@ npm run test:watch # watch mode
 
 The client doesn't have its own test suite yet.
 
+## CI
+
+GitHub Actions (`.github/workflows/ci.yml`) runs on every push to `main` and every pull request. The API job type-checks and builds with `tsc`, then runs `npm test`, which fails if coverage drops below the thresholds in `jest.config.ts`. The client job runs `oxlint` and a production build.
+
 ## Using the API directly
 
 The client covers day-to-day use, but the API can still be called directly if you want to script something or use Postman/Insomnia. A browser address bar can only send GET requests, so you can view `/tickets` and `/tickets/:id` just by typing the URL in, creating, updating, or deleting a ticket needs a tool that can send POST/PATCH/DELETE requests, `curl` in a terminal being the simplest.
