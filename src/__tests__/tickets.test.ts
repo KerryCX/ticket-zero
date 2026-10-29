@@ -242,3 +242,117 @@ describe("DELETE /tickets/:id", () => {
     expect(res.body.message).toBeDefined();
   });
 });
+
+describe("ticket edge cases", () => {
+  it("trims whitespace from the title on create", async () => {
+    const res = await request(app)
+      .post("/tickets")
+      .send({ title: "  Padded title  " });
+    expect(res.status).toBe(201);
+    expect(res.body.title).toBe("Padded title");
+  });
+
+  it("returns 400 for a whitespace-only title", async () => {
+    const res = await request(app).post("/tickets").send({ title: "   " });
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 when title is not a string", async () => {
+    const res = await request(app).post("/tickets").send({ title: 123 });
+    expect(res.status).toBe(400);
+  });
+
+  it("accepts every valid status and priority on create", async () => {
+    const statuses = ["new", "in-progress", "waiting-on-customer", "resolved"];
+    const priorities = ["low", "medium", "high"];
+    for (const status of statuses) {
+      for (const priority of priorities) {
+        const res = await request(app)
+          .post("/tickets")
+          .send({ title: `${status}/${priority}`, status, priority });
+        expect(res.status).toBe(201);
+        expect(res.body).toMatchObject({ status, priority });
+      }
+    }
+  });
+
+  it("creates a ticket with an assignee", async () => {
+    const res = await request(app)
+      .post("/tickets")
+      .send({ title: "Assigned", assignee: "Kerry" });
+    expect(res.status).toBe(201);
+    expect(res.body.assignee).toBe("Kerry");
+  });
+
+  it("returns an empty array when no tickets match the status filter", async () => {
+    await request(app).post("/tickets").send({ title: "Only new" });
+    const res = await request(app).get("/tickets?status=resolved");
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual([]);
+  });
+
+  it("returns 400 for malformed JSON", async () => {
+    const res = await request(app)
+      .post("/tickets")
+      .set("Content-Type", "application/json")
+      .send("{ not json");
+    expect(res.status).toBe(400);
+  });
+
+  it("returns a JSON 404 for an unknown route", async () => {
+    const res = await request(app).get("/does-not-exist");
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ message: "Not found" });
+  });
+});
+
+describe("PATCH /tickets/:id (workflow updates)", () => {
+  it("updates status and priority together", async () => {
+    const created = await request(app)
+      .post("/tickets")
+      .send({ title: "Workflow" });
+    const res = await request(app)
+      .patch(`/tickets/${created.body.id}`)
+      .send({ status: "in-progress", priority: "high" });
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      title: "Workflow",
+      status: "in-progress",
+      priority: "high",
+    });
+  });
+
+  it("trims the title and keeps id and createdAt unchanged", async () => {
+    const created = await request(app)
+      .post("/tickets")
+      .send({ title: "Original" });
+    const res = await request(app)
+      .patch(`/tickets/${created.body.id}`)
+      .send({ title: "  Renamed  " });
+    expect(res.status).toBe(200);
+    expect(res.body.title).toBe("Renamed");
+    expect(res.body.id).toBe(created.body.id);
+    expect(res.body.createdAt).toBe(created.body.createdAt);
+  });
+
+  it("returns 400 when title is not a string", async () => {
+    const created = await request(app)
+      .post("/tickets")
+      .send({ title: "Original" });
+    const res = await request(app)
+      .patch(`/tickets/${created.body.id}`)
+      .send({ title: 42 });
+    expect(res.status).toBe(400);
+  });
+
+  it("persists the update so a later GET sees it", async () => {
+    const created = await request(app)
+      .post("/tickets")
+      .send({ title: "Persist me" });
+    await request(app)
+      .patch(`/tickets/${created.body.id}`)
+      .send({ status: "resolved" });
+    const res = await request(app).get(`/tickets/${created.body.id}`);
+    expect(res.body.status).toBe("resolved");
+  });
+});
